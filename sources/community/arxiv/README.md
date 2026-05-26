@@ -47,12 +47,18 @@ WHERE query = 'large language model'
 LIMIT 20;
 
 -- Search for biology preprints with open-access PDFs
-SELECT title, year, citation_count, open_access_pdf_url, authors
+SELECT title, year, citation_count, is_open_access
 FROM arxiv.papers
-WHERE query = 'protein folding'
-  AND fields_of_study = 'Biology'
-  AND open_access_pdf = ''
-LIMIT 10;
+WHERE query = 'CRISPR'
+LIMIT 1;
+
+/*
++------------------------------------------------------------------+------+----------------+----------------+
+| title                                                            | year | citation_count | is_open_access |
++------------------------------------------------------------------+------+----------------+----------------+
+| A new era of genome editing with CRISPR/Cas9                     | 2014 | 14502          | true           |
++------------------------------------------------------------------+------+----------------+----------------+
+*/
 
 -- Find a specific paper by title
 SELECT title, abstract, citation_count, external_ids, authors
