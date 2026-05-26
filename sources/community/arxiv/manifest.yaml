@@ -1,0 +1,214 @@
+name: arxiv
+version: 0.1.0
+dsl_version: 3
+backend: http
+description: >-
+  Search and retrieve arXiv preprint metadata via the Semantic Scholar Academic
+  Graph API. Returns paper titles, abstracts, citation counts, authors, venue,
+  open-access PDF links, and external IDs (arXiv, DOI, PubMed). Covers 200M+
+  papers including all arXiv preprints. No authentication required for basic
+  access; provide an API key for higher rate limits.
+
+  Note: this source uses the Semantic Scholar API (api.semanticscholar.org)
+  because the native arXiv API only returns Atom XML, which is incompatible
+  with Coral's HTTP JSON backend.
+inputs:
+  S2_API_KEY:
+    kind: secret
+    hint: >-
+      Optional Semantic Scholar API key for higher rate limits. Get one at
+      https://www.semanticscholar.org/product/api#api-key-form.
+      Leave empty for anonymous access (100 req/5min).
+base_url: https://api.semanticscholar.org/graph/v1
+request_headers:
+  - name: Accept
+    from: literal
+    value: application/json
+
+test_queries:
+  - SELECT title, year, citation_count FROM arxiv.papers WHERE query = 'attention is all you need' LIMIT 1
+  - SELECT title, year, citation_count, is_open_access FROM arxiv.papers WHERE query = 'CRISPR' LIMIT 1
+
+tables:
+  # ─────────────────────────────────────────────────────────────
+  # papers – search for scholarly papers
+  # ─────────────────────────────────────────────────────────────
+  - name: papers
+    description: >
+      Search for scholarly papers including arXiv preprints. Returns paper
+      metadata with title, abstract, year, citation/reference counts,
+      open-access PDF URL, venue, external IDs (ArXiv, DOI, PubMed), and
+      authors. Use `query` for keyword search (required). Use `year` to
+      filter by publication year or year range, `fields_of_study` to filter
+      by field, and `open_access_pdf` to find only papers with free PDFs.
+    guide: >
+      Start with `SELECT title, year, citation_count FROM arxiv.papers WHERE
+      query = 'transformer' LIMIT 10`. Use `year` filter for year ranges
+      (e.g. `2023-2024`). Use `fields_of_study` for field filtering (e.g.
+      `Computer Science`). The `external_ids` column contains arXiv IDs,
+      DOIs, and other identifiers as JSON. The `authors` column contains
+      author names and Semantic Scholar IDs.
+    fetch_limit_default: 10
+    filters:
+      - name: query
+        required: true
+      - name: year
+      - name: fields_of_study
+      - name: open_access_pdf
+    request:
+      method: GET
+      path: /paper/search
+      query:
+        - name: query
+          from: filter
+          key: query
+        - name: year
+          from: filter
+          key: year
+        - name: fieldsOfStudy
+          from: filter
+          key: fields_of_study
+        - name: openAccessPdf
+          from: filter
+          key: open_access_pdf
+        - name: fields
+          from: literal
+          value: paperId,title,abstract,year,citationCount,referenceCount,isOpenAccess,openAccessPdf,venue,externalIds,url,authors
+        - name: x-api-key
+          from: input
+          key: S2_API_KEY
+    response:
+      rows_path:
+        - data
+    pagination:
+      mode: offset
+      offset_param: offset
+      page_size:
+        default: 10
+        max: 100
+        query_param: limit
+    columns:
+      - name: paper_id
+        type: Utf8
+        nullable: false
+        description: Semantic Scholar paper ID (40-character hex string).
+        expr:
+          kind: path
+          path:
+            - paperId
+      - name: title
+        type: Utf8
+        nullable: true
+        description: Paper title.
+        expr:
+          kind: path
+          path:
+            - title
+      - name: abstract
+        type: Utf8
+        nullable: true
+        description: Paper abstract (full text).
+        expr:
+          kind: path
+          path:
+            - abstract
+      - name: year
+        type: Int64
+        nullable: true
+        description: Publication year.
+        expr:
+          kind: path
+          path:
+            - year
+      - name: citation_count
+        type: Int64
+        nullable: true
+        description: Total number of citations.
+        expr:
+          kind: path
+          path:
+            - citationCount
+      - name: reference_count
+        type: Int64
+        nullable: true
+        description: Number of references in the paper.
+        expr:
+          kind: path
+          path:
+            - referenceCount
+      - name: is_open_access
+        type: Boolean
+        nullable: true
+        description: Whether the paper has an open-access version.
+        expr:
+          kind: path
+          path:
+            - isOpenAccess
+      - name: open_access_pdf_url
+        type: Utf8
+        nullable: true
+        description: URL to the open-access PDF (if available).
+        expr:
+          kind: path
+          path:
+            - openAccessPdf
+            - url
+      - name: venue
+        type: Utf8
+        nullable: true
+        description: Publication venue (journal or conference name).
+        expr:
+          kind: path
+          path:
+            - venue
+      - name: external_ids
+        type: Json
+        nullable: true
+        description: >-
+          External identifiers as JSON object. Keys include ArXiv, DOI, DBLP,
+          PubMed, PubMedCentral, CorpusId, and MAG.
+        expr:
+          kind: path
+          path:
+            - externalIds
+      - name: url
+        type: Utf8
+        nullable: true
+        description: Semantic Scholar paper URL.
+        expr:
+          kind: path
+          path:
+            - url
+      - name: authors
+        type: Json
+        nullable: true
+        description: >-
+          Authors as JSON array. Each entry has authorId and name.
+        expr:
+          kind: path
+          path:
+            - authors
+      - name: query
+        type: Utf8
+        nullable: true
+        virtual: true
+        description: Echoes the query filter value.
+        expr:
+          kind: from_filter
+          key: query
+      - name: year_filter
+        type: Utf8
+        nullable: true
+        virtual: true
+        description: Echoes the year filter value.
+        expr:
+          kind: from_filter
+          key: year
+      - name: fields_of_study_filter
+        type: Utf8
+        nullable: true
+        virtual: true
+        description: Echoes the fields_of_study filter value.
+        expr:
+          kind: from_filter
+          key: fields_of_study
