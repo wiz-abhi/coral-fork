@@ -36,15 +36,15 @@ and set the `S2_API_KEY` input.
 SELECT title, year, citation_count, is_open_access
 FROM arxiv.papers
 WHERE query = 'vision transformer'
-  AND year = '2023-2024'
-LIMIT 10;
+  AND year_filter = '2023-2024'
+LIMIT 5;
 
 -- Find highly-cited machine learning papers
 SELECT title, year, citation_count, open_access_pdf_url, external_ids
 FROM arxiv.papers
 WHERE query = 'large language model'
-  AND fields_of_study = 'Computer Science'
-LIMIT 20;
+  AND fields_of_study_filter = 'Computer Science'
+LIMIT 5;
 
 -- Search for biology preprints with open-access PDFs
 SELECT title, year, citation_count, is_open_access

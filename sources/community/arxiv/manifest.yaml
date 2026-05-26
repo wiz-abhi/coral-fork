@@ -52,9 +52,9 @@ tables:
     filters:
       - name: query
         required: true
-      - name: year
-      - name: fields_of_study
-      - name: open_access_pdf
+      - name: year_filter
+      - name: fields_of_study_filter
+      - name: open_access_pdf_filter
     request:
       method: GET
       path: /paper/search
@@ -64,13 +64,13 @@ tables:
           key: query
         - name: year
           from: filter
-          key: year
+          key: year_filter
         - name: fieldsOfStudy
           from: filter
-          key: fields_of_study
+          key: fields_of_study_filter
         - name: openAccessPdf
           from: filter
-          key: open_access_pdf
+          key: open_access_pdf_filter
         - name: fields
           from: literal
           value: paperId,title,abstract,year,citationCount,referenceCount,isOpenAccess,openAccessPdf,venue,externalIds,url,authors
@@ -203,7 +203,7 @@ tables:
         description: Echoes the year filter value.
         expr:
           kind: from_filter
-          key: year
+          key: year_filter
       - name: fields_of_study_filter
         type: Utf8
         nullable: true
@@ -211,4 +211,12 @@ tables:
         description: Echoes the fields_of_study filter value.
         expr:
           kind: from_filter
-          key: fields_of_study
+          key: fields_of_study_filter
+      - name: open_access_pdf_filter
+        type: Utf8
+        nullable: true
+        virtual: true
+        description: Echoes the open_access_pdf filter value.
+        expr:
+          kind: from_filter
+          key: open_access_pdf_filter
